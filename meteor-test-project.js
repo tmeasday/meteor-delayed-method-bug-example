@@ -1,12 +1,31 @@
 var Posts = new Meteor.Collection('posts');
 
 if (Meteor.isClient) {
-  Meteor.subscribe('posts', {sort: {submitted: 1}});
-  Meteor.subscribe('posts', {sort: {score: 1}});
+  Template.body.posts = function() {
+    console.log(Posts.find().map(function(p) { return p._id }));
+    return Posts.find();
+  }
+  
+  Template.body.events({
+    'click button': function() {
+      Meteor.call('createPost', $('[name=title]').val());
+    }
+  })
 }
 
-if (Meteor.isServer) {
-  Meteor.publish('posts', function(options){ 
-    console.log('publish called with :', options.sort);
-  });
-}
+Meteor.methods({'createPost': function(title) {
+  Posts.insert({title: title + ' from ' + (Meteor.isClient ? 'client' : 'server')});
+  
+  if (Meteor.isClient)
+    return
+    
+  Posts.findOne();
+  var Future = Npm.require('fibers/future');
+  var future = new Future();
+  Meteor.setTimeout(function() {
+    future.ret();
+  }, 3000);
+  
+  return future.wait()
+}});
+
